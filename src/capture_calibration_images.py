@@ -3,12 +3,12 @@ import os
 import time
 
 # Capture parameters
-CAMERA_ID = 0  # Camera ID (usually 0 for built-in webcam)
+CAMERA_ID = 2  # Camera ID (usually 0 for built-in webcam)
 CHESSBOARD_SIZE = (8, 5)  # Number of inner corners per chessboard row and column
-OUTPUT_DIRECTORY = '/home/humiii/april_ws/src/apriltag_tracker/calibration'  # Directory to save calibration images
+OUTPUT_DIRECTORY = '/home/humiii/april_ws/src/apriltag_tracker/calibration_new_new'  # Directory to save calibration images
 
 
-IMAGE_RES = (1280, 720)
+IMAGE_RES = (640, 480)
 
 def capture_calibration_images():
     """
@@ -21,7 +21,7 @@ def capture_calibration_images():
         os.makedirs(OUTPUT_DIRECTORY)
     
     # Open camera
-    cap = cv2.VideoCapture(CAMERA_ID)
+    cap = cv2.VideoCapture(CAMERA_ID, cv2.CAP_V4L2)
 
     # Set width and height
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_RES[0])

@@ -98,7 +98,7 @@ class AprilTagTracker(Node):
         
         self.tag0_pub = self.create_publisher(
             Vector3Stamped,
-            "/dock/tag0",
+            "/dock/tag0", # gives the pose
             10
         )
         
@@ -131,8 +131,10 @@ class AprilTagTracker(Node):
             # this is to get 3D pose
             image_points = det.corners.astype(np.float32)
             ret, rvec, tvec = cv2.solvePnP(self.object_points, image_points, self.camera_matrix, self.dist_coeffs)
+            
             x, y, z = tvec.flatten()
             
+            #This is the part for the drawing the detection frame on the tag
             if ret:
                 tag_poses[tag_id] = {'rvec': rvec, 'tvec': tvec}
                 
@@ -155,12 +157,31 @@ class AprilTagTracker(Node):
         pose_array.header = msg.header
   
         for tag_id, pose_data in tag_poses.items():
+        #for tag_id , pose_data in camera_pose.items():
+            
             tvec = pose_data['tvec'].flatten()
+            rvec = pose_data['rvec'].flatten()
+            
+            #new line
+            Rotation, _ = cv2.Rodrigues(rvec) # this is the actual rotation
+            #new line
+            Rotation_inv = Rotation.T
+            #new line
+            camera_pose = -Rotation.T @ tvec  # this is the position of the camera(vehicle) in the tag frame
+            #new line 
+            yaw = np.arctan2(Rotation_inv[1,0], Rotation_inv[0,0])
 
             pose = Pose()
-            pose.position.x = float(tvec[0])
-            pose.position.y = float(tvec[1])
-            pose.position.z = float(tvec[2])
+            pose.position.x = float(camera_pose[0]) #float(tvec[0])
+            pose.position.y = float(camera_pose[1]) #float(tvec[1])
+            pose.position.z = float(camera_pose[2]) #float(tvec[2])
+            
+            #new line
+            pose.orientation.x = 0.0
+            pose.orientation.y = 0.0
+            pose.orientation.z = float(np.sin(yaw / 2.0))
+            pose.orientation.w = float(np.cos(yaw / 2.0))
+            ########
 
             pose_array.poses.append(pose)
 

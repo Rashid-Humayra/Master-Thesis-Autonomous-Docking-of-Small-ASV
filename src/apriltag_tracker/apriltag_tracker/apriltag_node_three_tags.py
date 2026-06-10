@@ -65,6 +65,14 @@ class AprilTagTracker(Node):
         self.camera_matrix = np.array([[fx, 0, cx],
                                     [0, fy, cy],
                                     [0,  0,  1]], dtype=np.float32)
+        
+        ###############
+        self.tag_offsets = {
+            0: np.array([0.0,  0.0]),   # [x, z]
+            1: np.array([0.5,  1.0]),   # right tag 1m in front and 50cm to the right
+            2: np.array([-0.5, 1.0]),   # left tag 1m in front and 50cm to the left
+        }
+        ###############
 
 
 
@@ -98,7 +106,7 @@ class AprilTagTracker(Node):
         
         self.tag0_pub = self.create_publisher(
             Vector3Stamped,
-            "/dock/tag0",
+            "/dock/tag0", # gives the pose
             10
         )
         
@@ -131,8 +139,10 @@ class AprilTagTracker(Node):
             # this is to get 3D pose
             image_points = det.corners.astype(np.float32)
             ret, rvec, tvec = cv2.solvePnP(self.object_points, image_points, self.camera_matrix, self.dist_coeffs)
+            
             x, y, z = tvec.flatten()
             
+            #This is the part for the drawing the detection frame on the tag
             if ret:
                 tag_poses[tag_id] = {'rvec': rvec, 'tvec': tvec}
                 
@@ -155,12 +165,31 @@ class AprilTagTracker(Node):
         pose_array.header = msg.header
   
         for tag_id, pose_data in tag_poses.items():
+        #for tag_id , pose_data in camera_pose.items():
+            
             tvec = pose_data['tvec'].flatten()
+            rvec = pose_data['rvec'].flatten()
+            
+            #new line
+            Rotation, _ = cv2.Rodrigues(rvec) # this is the actual rotation
+            #new line
+            Rotation_inv = Rotation.T
+            #new line
+            camera_pose = -Rotation.T @ tvec  # this is the position of the camera(vehicle) in the tag frame
+            #new line 
+            yaw = np.arctan2(Rotation_inv[1,0], Rotation_inv[0,0])
 
             pose = Pose()
-            pose.position.x = float(tvec[0])
-            pose.position.y = float(tvec[1])
-            pose.position.z = float(tvec[2])
+            pose.position.x = float(camera_pose[0]) #float(tvec[0])
+            pose.position.y = float(camera_pose[1]) #float(tvec[1])
+            pose.position.z = float(camera_pose[2]) #float(tvec[2])
+            
+            #new line
+            pose.orientation.x = 0.0
+            pose.orientation.y = 0.0
+            pose.orientation.z = float(np.sin(yaw / 2.0))
+            pose.orientation.w = float(np.cos(yaw / 2.0))
+            ########
 
             pose_array.poses.append(pose)
 
@@ -168,46 +197,13 @@ class AprilTagTracker(Node):
         
 
 
-        ###################### commenting out to build a simple controller
-
-        # if 1 in tag_poses and 2 in tag_poses:
-        #     tvec_1 = tag_poses[1]['tvec'].flatten()
-        #     tvec_2 = tag_poses[2]['tvec'].flatten()
-            
-        #     # Lateral X-Error (Midpoint between Tag 1 and Tag 2)
-        #     X_Midpoint_Error = (tvec_1[0] + tvec_2[0]) / 2
-            
-        #     # Average approach distance (Z)
-        #     Z_Entrance_Avg = (tvec_1[2] + tvec_2[2]) / 2
-            
-
-        #     # cv2.putText(frame, f"S1: X-Midpoint-Error: {X_Midpoint_Error:.2f} m", (10, 30),
-        #     #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-        #     # cv2.putText(frame, f"S1: Z-Entry-Dist: {Z_Entrance_Avg:.2f} m", (10, 60),
-        #     #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-        #     msg = Float32MultiArray()
-        #     msg.data = [
-        #         X_Midpoint_Error,
-        #         Z_Entrance_Avg
-        #     ]
-        #     self.stage_pub.publish(msg)
-          
-        #####################################
+        
 
         # Checking if the final center tag (0) is present for Stage 3 Precision
         if 0 in tag_poses:
             tvec_0 = tag_poses[0]['tvec'].flatten()
             rvec_0 = tag_poses[0]['rvec'].flatten()
             
-            
-            # Yaw_Target_Error = rvec_2[2] 
-            
-            # cv2.putText(frame, f"S3: X-Target: {tvec_2[0]:.2f} m", (10, 100),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            # cv2.putText(frame, f"S3: Z-Target: {tvec_2[2]:.2f} m", (10, 130),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            # cv2.putText(frame, f"S3: Yaw Error: {Yaw_Target_Error:.2f} rad", (10, 160),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             
             x = tvec_0[0]  # X-coordinate of the Middle Tag
             z = tvec_0[2]  # Z-coordinate of the Middle Tag
@@ -248,31 +244,8 @@ class AprilTagTracker(Node):
             self.tag0_valid_pub.publish(v)
             
             
-            # cv2.putText(frame, f"S3: Lateral Error (X): {x:.2f} m", (10, 100),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            # cv2.putText(frame, f"S3: Approach Dist (Z): {z:.2f} m", (10, 130),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            # cv2.putText(frame, f"S3: Horizontal Dist: {horizontal_distance:.2f} m", (10, 160),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-            # cv2.putText(frame, f"S3: Azimuth Angle: {angle_deg:.2f} deg", (10, 190),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-        
-        
-        # Yaw_Target_Error = rvec_0[2] 
-        # cv2.putText(frame, f"S3: Yaw Error: {Yaw_Target_Error:.2f} rad", (10, 190),
-        #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-    
-    
-    
-   
-        
-    #cv2.imshow("AprilTag Detection", frame)
+            
 
-    #if cv2.waitKey(1) & 0xFF == 27:  # ESC key
-     #   break
-
-#cap.release()
-#cv2.destroyAllWindows()
 
 def main(args=None):
     rclpy.init(args= args)

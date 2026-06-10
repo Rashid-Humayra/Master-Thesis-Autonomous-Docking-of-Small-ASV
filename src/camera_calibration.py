@@ -8,8 +8,8 @@ import pickle
 # You can modify these variables as needed
 CHESSBOARD_SIZE = (9, 6)  # Number of inner corners per chessboard row and column
 SQUARE_SIZE = 2       # Size of a square in centimeters
-CALIBRATION_IMAGES_PATH = '/home/humiii/april_ws/src/apriltag_tracker/calibration/*.jpg'  # Path to calibration images
-OUTPUT_DIRECTORY = '/home/humiii/april_ws/src/apriltag_tracker/calibration/output'  # Directory to save calibration results
+CALIBRATION_IMAGES_PATH = '/home/humiii/april_ws/src/apriltag_tracker/calibration_new_new/*.jpg'  # Path to calibration images
+OUTPUT_DIRECTORY = '/home/humiii/april_ws/src/apriltag_tracker/calibration_new_new/output'  # Directory to save calibration results
 SAVE_UNDISTORTED = True   # Whether to save undistorted images
 
 def calibrate_camera():
