@@ -1,0 +1,19 @@
+<?xml version='1.0'?>
+<sdf version='1.6'>
+  <model name='April_Tag_0'>
+    <link name='main'>
+      <pose frame=''>0 0 0 0 0 0</pose>
+      <visual name="visual">
+      <!-- <double_sided>true</double_sided> -->
+        <geometry>
+            <mesh>
+                <!-- <scale>0.12 0.12 0.12</scale> -->
+                <scale>0.165 0.165 0.165</scale>
+                <uri>meshes/AprilTags0.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+     </link>
+    <static>1</static>
+  </model>
+</sdf>
